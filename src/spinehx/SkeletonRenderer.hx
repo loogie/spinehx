@@ -110,7 +110,7 @@ class SkeletonRenderer extends Sprite {
         }
         filled = true;
         if(bd != null){
-            graphics.beginBitmapFill(bd, null, true, true);
+            graphics.beginBitmapFill(bd, null, true, false);
             graphics.drawTriangles(vs, idx, uvt, TriangleCulling.NONE);
             graphics.endFill();
         }

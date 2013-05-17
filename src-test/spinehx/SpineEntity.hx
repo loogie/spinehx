@@ -25,74 +25,70 @@
 
 package spinehx;
 
-import flash.display.Sprite;
-import flash.events.Event;
-import flash.events.MouseEvent;
-import spinehx.Bone;
+import nme.display.Sprite;
+import nme.events.Event;
+import nme.events.MouseEvent;
 import spinehx.atlas.TextureAtlas;
-import spinehx.SkeletonJson;
-import spinehx.Animation;
-import spinehx.Skeleton;
-import spinehx.SkeletonData;
-import spinehx.SkeletonRendererDebug;
-import spinehx.SkeletonRenderer;
 
-class MixTest extends Sprite {
+class SpineEntity extends Sprite {
+	
+	var animName:String;
+	
 	var time:Float = 0.0;
 	var renderer:SkeletonRenderer;
 	var debugRenderer:SkeletonRendererDebug;
 
 	var skeletonData:SkeletonData;
 	var skeleton:Skeleton;
-	var walkAnimation:Animation;
-	var jumpAnimation:Animation;
+	var animation:Animation;
     var lastTime:Float = 0.0;
     var mode:Int = 1;
 
-    public function new() {
+    public function new(name:String, anim:String) {
         super();
-		var name = "spineboy";
 
-		var atlas:TextureAtlas = TextureAtlas.create("assets/" + name + ".atlas", "assets/");
+		animName = anim;
+		
+        var atlas:TextureAtlas = TextureAtlas.create("assets/" + name + ".atlas", "assets/");
 
 		if (true) {
-			var json = SkeletonJson.create(atlas);
-			// json.setScale(2);
-			skeletonData = json.readSkeletonData(name, nme.Assets.getText("assets/" + name + ".json"));
+            var json = SkeletonJson.create(atlas);
+            json.setScale(0.5);
+            skeletonData = json.readSkeletonData(name, nme.Assets.getText("assets/" + name + ".json"));
 		} /*else {
 			SkeletonBinary binary = new SkeletonBinary(atlas);
 			// binary.setScale(2);
 			skeletonData = binary.readSkeletonData(Gdx.files.internal(name + ".skel"));
-		}*/
-		walkAnimation = skeletonData.findAnimation("walk");
-		jumpAnimation = skeletonData.findAnimation("jump");
+		} */
+		animation = skeletonData.findAnimation(animName);
 
 		skeleton = Skeleton.create(skeletonData);
+		if (name == "dragon") skeleton.setSkinByName("default");
 		skeleton.setToBindPose();
+		skeleton = Skeleton.copy(skeleton);
 
 		var root_:Bone = skeleton.getRootBone();
-		root_.x = -50;
+		root_.x = 50;
 		root_.y = 20;
 		root_.scaleX = 1.0;
 		root_.scaleY = 1.0;
         skeleton.setFlipY(true);
 		skeleton.updateWorldTransform();
-        lastTime = haxe.Timer.stamp();
 
         renderer = new SkeletonRenderer(skeleton);
         debugRenderer = new SkeletonRendererDebug(skeleton);
 
         renderer.x = 0;
-        renderer.y = 300;
+        renderer.y = 350;
         debugRenderer.x = 0;
-        debugRenderer.y = 300;
+        debugRenderer.y = 350;
         addChild(renderer);
         addChild(debugRenderer);
         addChild(new nme.display.FPS());
 
         addEventListener(Event.ENTER_FRAME, render);
         addEventListener(Event.ADDED_TO_STAGE, added);  renderer.draw();
-    }
+	}
 
     public function added(e:Event):Void {
         this.mouseChildren = false;
@@ -100,59 +96,34 @@ class MixTest extends Sprite {
     }
 
     public function onClick(e:Event):Void {
-        mode++;
-        mode%=3;
+//        mode++;
+//        mode%=3;
+        if (name == "dragon") {
+            skeleton.setSkinByName(skeleton.getSkin().getName() == "dragon" ? "default" : "dragon");
+            skeleton.setSlotsToBindPose();
+        }
     }
+
 
     public function render(e:Event):Void {
         var deltaTime:Float = haxe.Timer.stamp() - lastTime;
-        var delta = (deltaTime);// / 4.0;   // Reduced to make mixing easier to see.
         lastTime = haxe.Timer.stamp();
-
-		var jump:Float = jumpAnimation.getDuration();
-		var beforeJump:Float = 1.0;
-		var blendIn:Float = 0.4;
-		var blendOut:Float = 0.4;
-		var blendOutStart:Float = beforeJump + jump - blendOut;
-		var total:Float = 3.75;
-
-		time += delta;
+		time += deltaTime;
 
 		var root_:Bone = skeleton.getRootBone();
-		var speed:Float = 180;
-		if (time > beforeJump + blendIn && time < blendOutStart) speed = 360;
-		root_.setX(root_.getX() + speed * delta);
+		var x:Float = root_.getX() + 160 * deltaTime * (skeleton.getFlipX() ? -1 : 1);
+		if (x > nme.Lib.stage.stageWidth) skeleton.setFlipX(true);
+		if (x < 0) skeleton.setFlipX(false);
+		root_.setX(x);
 
-		// This shows how to manage state manually. See AnimationStatesTest.
-		if (time > total) {
-			// restart
-			time = 0;
-			root_.setX(-50);
-		} else if (time > beforeJump + jump) {
-			// just walk after jump
-			walkAnimation.apply(skeleton, time, true);
-		} else if (time > blendOutStart) {
-			// blend out jump
-			walkAnimation.apply(skeleton, time, true);
-			jumpAnimation.mix(skeleton, time - beforeJump, false, 1 - (time - blendOutStart) / blendOut);
-		} else if (time > beforeJump + blendIn) {
-			// just jump
-			jumpAnimation.apply(skeleton, time - beforeJump, false);
-		} else if (time > beforeJump) {
-			// blend in jump
-			walkAnimation.apply(skeleton, time, true);
-			jumpAnimation.mix(skeleton, time - beforeJump, false, (time - beforeJump) / blendIn);
-		} else {
-			// just walk before jump
-			walkAnimation.apply(skeleton, time, true);
-		}
-
+		animation.apply(skeleton, time, true);
 		skeleton.updateWorldTransform();
 		skeleton.update(deltaTime);
 
 
         if(mode == 0 || mode == 1){
             renderer.visible = true;
+            renderer.clearBuffers();
             renderer.draw();
         } else renderer.visible = false;
         if(mode == 0 || mode == 2){
@@ -160,13 +131,4 @@ class MixTest extends Sprite {
             debugRenderer.draw();
         } else debugRenderer.visible = false;
 	}
-
-//	public void resize (int width, int height) {
-//		batch.getProjectionMatrix().setToOrtho2D(0, 0, width, height);
-//		debugRenderer.getShapeRenderer().setProjectionMatrix(batch.getProjectionMatrix());
-//	}
-
-//	public static void main (String[] args) throws Exception {
-//		new LwjglApplication(new MixTest());
-//	}
 }

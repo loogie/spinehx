@@ -43,23 +43,23 @@ class SkeletonTest extends Sprite {
 
     public function new() {
         super();
-        name = "goblins"; // "spineboy";
+        name = "dragon";
 
         var atlas:TextureAtlas = TextureAtlas.create("assets/" + name + ".atlas", "assets/");
 
 		if (true) {
             var json = SkeletonJson.create(atlas);
-            // json.setScale(2);
+            json.setScale(0.5);
             skeletonData = json.readSkeletonData(name, nme.Assets.getText("assets/" + name + ".json"));
 		} /*else {
 			SkeletonBinary binary = new SkeletonBinary(atlas);
 			// binary.setScale(2);
 			skeletonData = binary.readSkeletonData(Gdx.files.internal(name + ".skel"));
 		} */
-		animation = skeletonData.findAnimation("walk");
+		animation = skeletonData.findAnimation("flying");
 
 		skeleton = Skeleton.create(skeletonData);
-		if (name == "goblins") skeleton.setSkinByName("goblin");
+		if (name == "dragon") skeleton.setSkinByName("default");
 		skeleton.setToBindPose();
 		skeleton = Skeleton.copy(skeleton);
 
@@ -94,8 +94,8 @@ class SkeletonTest extends Sprite {
     public function onClick(e:Event):Void {
 //        mode++;
 //        mode%=3;
-        if (name == "goblins") {
-            skeleton.setSkinByName(skeleton.getSkin().getName() == "goblin" ? "goblingirl" : "goblin");
+        if (name == "dragon") {
+            skeleton.setSkinByName(skeleton.getSkin().getName() == "dragon" ? "default" : "dragon");
             skeleton.setSlotsToBindPose();
         }
     }
